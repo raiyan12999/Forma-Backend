@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Edit Project — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title" id="pageTitle">Add New Project</h1>
+      <a href="/admin/projects.html" class="btn btn-outline">← Back to Projects</a>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="title">Project Title *</label>
+          <input type="text" id="title" placeholder="e.g. Purbachal Convention Centre" />
+        </div>
+        <div class="form-group">
+          <label for="category">Category *</label>
+          <select id="category">
+            <option value="">Select category…</option>
+            <option value="BUILDING_DESIGN">Building Design</option>
+            <option value="COMMERCIAL">Commercial</option>
+            <option value="OFFICE">Office</option>
+            <option value="RESIDENTIAL">Residential</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="year">Year</label>
+          <input type="number" id="year" placeholder="2024" min="2000" max="2100" />
+        </div>
+        <div class="form-group">
+          <label for="status">Status</label>
+          <input type="text" id="status" placeholder="e.g. 2nd Prize — Open Competition" />
+        </div>
+        <div class="form-group">
+          <label for="client">Client</label>
+          <input type="text" id="client" placeholder="e.g. RAJUK" />
+        </div>
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input type="text" id="location" placeholder="e.g. Purbachal, Dhaka" />
+        </div>
+        <div class="form-group">
+          <label for="landArea">Land Area</label>
+          <input type="text" id="landArea" placeholder="e.g. 36,981 sqm" />
+        </div>
+        <div class="form-group">
+          <label for="builtArea">Built Area</label>
+          <input type="text" id="builtArea" placeholder="e.g. 41,463 sqm + 3 basements" />
+        </div>
+        <div class="form-group">
+          <label for="projectType">Project Type</label>
+          <input type="text" id="projectType" placeholder="e.g. Civic — Convention Centre" />
+        </div>
+        <div class="form-group">
+          <label for="principalArchitects">Principal Architects</label>
+          <input type="text" id="principalArchitects" placeholder="e.g. K. Ashifuzzaman, S. H. Rocky" />
+        </div>
+        <div class="form-group">
+          <label for="displayOrder">Display Order</label>
+          <input type="number" id="displayOrder" placeholder="0" min="0" />
+        </div>
+        <div class="form-group">
+          <label for="isFeatured">Featured on Homepage</label>
+          <select id="isFeatured">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label for="description">Description</label>
+          <textarea id="description" rows="6" placeholder="Full project description shown on the detail page…"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button onclick="saveProject()" class="btn btn-primary" id="saveBtn">Save Project</button>
+        <a href="/admin/projects.html" class="btn btn-outline">Cancel</a>
+      </div>
+    </div>
+
+    <!-- After saving a new project, offer to add images -->
+    <div id="nextStep" style="display:none;" class="card">
+      <p style="margin-bottom:1rem;">Project saved! Now add images to it.</p>
+      <a id="addImagesLink" href="#" class="btn btn-primary">Add Images →</a>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  // Check if we're editing an existing project (URL has ?id=123)
+  const params = new URLSearchParams(window.location.search);
+  const editId = params.get('id');
+
+  if (editId) {
+    document.getElementById('pageTitle').textContent = 'Edit Project';
+    loadProject(editId);
+  }
+
+  // Load existing project data into the form
+  async function loadProject(id) {
+    try {
+      const project = await adminGet('/api/projects/' + id);
+      document.getElementById('title').value            = project.title || '';
+      document.getElementById('category').value         = project.category || '';
+      document.getElementById('year').value             = project.year || '';
+      document.getElementById('status').value           = project.status || '';
+      document.getElementById('client').value           = project.client || '';
+      document.getElementById('location').value         = project.location || '';
+      document.getElementById('landArea').value         = project.landArea || '';
+      document.getElementById('builtArea').value        = project.builtArea || '';
+      document.getElementById('projectType').value      = project.projectType || '';
+      document.getElementById('principalArchitects').value = project.principalArchitects || '';
+      document.getElementById('displayOrder').value     = project.displayOrder || 0;
+      document.getElementById('isFeatured').value       = project.isFeatured ? 'true' : 'false';
+      document.getElementById('description').value      = project.description || '';
+    } catch (err) {
+      showError('Failed to load project: ' + err.message);
+    }
+  }
+
+  async function saveProject() {
+    const title = document.getElementById('title').value.trim();
+    const category = document.getElementById('category').value;
+
+    if (!title) { showError('Project title is required.'); return; }
+    if (!category) { showError('Please select a category.'); return; }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const body = {
+      title,
+      category,
+      year: parseInt(document.getElementById('year').value) || null,
+      status: document.getElementById('status').value.trim() || null,
+      client: document.getElementById('client').value.trim() || null,
+      location: document.getElementById('location').value.trim() || null,
+      landArea: document.getElementById('landArea').value.trim() || null,
+      builtArea: document.getElementById('builtArea').value.trim() || null,
+      projectType: document.getElementById('projectType').value.trim() || null,
+      principalArchitects: document.getElementById('principalArchitects').value.trim() || null,
+      displayOrder: parseInt(document.getElementById('displayOrder').value) || 0,
+      isFeatured: document.getElementById('isFeatured').value === 'true',
+      description: document.getElementById('description').value.trim() || null,
+    };
+
+    try {
+      let saved;
+      if (editId) {
+        saved = await adminPut('/api/admin/projects/' + editId, body);
+        showSuccess('Project updated successfully!');
+      } else {
+        saved = await adminPost('/api/admin/projects', body);
+        showSuccess('Project created! Now add images below.');
+        // Show the "add images" prompt
+        document.getElementById('nextStep').style.display = 'block';
+        document.getElementById('addImagesLink').href = '/admin/project-images.html?id=' + saved.id;
+      }
+    } catch (err) {
+      showError('Save failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Project';
+    }
+  }
+</script>
+</body>
+</html>

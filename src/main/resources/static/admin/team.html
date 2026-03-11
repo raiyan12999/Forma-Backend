@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+<style>
+  .team-photo { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; }
+  .no-photo { width:44px; height:44px; background:#eee; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; color:#aaa; }
+</style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Team Members</h1>
+      <a href="/admin/team-edit.html" class="btn btn-primary">+ Add Team Member</a>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Type</th>
+              <th>Order</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teamTableBody">
+            <tr><td colspan="6" class="loading">Loading team members…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  async function loadTeam() {
+    try {
+      const members = await adminGet('/api/team');
+      const tbody = document.getElementById('teamTableBody');
+
+      if (members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:2rem;">No team members yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = members.map(m => `
+        <tr>
+          <td>
+            ${m.photoMediumUrl
+              ? `<img src="${m.photoMediumUrl}" alt="${m.name}" class="team-photo" loading="lazy" />`
+              : `<div class="no-photo">No<br>photo</div>`}
+          </td>
+          <td><strong>${m.name}</strong></td>
+          <td>${m.role}</td>
+          <td><span class="badge ${m.isPartner ? 'badge-green' : 'badge-gray'}">${m.isPartner ? 'Partner' : 'Team'}</span></td>
+          <td>${m.displayOrder}</td>
+          <td>
+            <div class="td-actions">
+              <a href="/admin/team-edit.html?id=${m.id}" class="btn btn-outline btn-sm">Edit</a>
+              <button onclick="deleteMember(${m.id}, '${m.name.replace(/'/g,"\\'")}', this)" class="btn btn-danger btn-sm">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      showError('Failed to load team: ' + err.message);
+    }
+  }
+
+  async function deleteMember(memberId, name, btn) {
+    if (!confirm(`Delete team member "${name}"? Their photo will also be deleted.`)) return;
+    try {
+      btn.disabled = true;
+      await adminDelete('/api/admin/team/' + memberId);
+      showSuccess('Team member deleted.');
+      await loadTeam();
+    } catch (err) {
+      showError('Delete failed: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+  loadTeam();
+</script>
+</body>
+</html>

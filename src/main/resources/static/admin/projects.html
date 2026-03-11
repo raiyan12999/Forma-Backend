@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Projects — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Projects</h1>
+      <a href="/admin/project-edit.html" class="btn btn-primary">+ Add New Project</a>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Year</th>
+              <th>Featured</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projectsTableBody">
+            <tr><td colspan="5" class="loading">Loading projects…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  // Category display names
+  const categoryNames = {
+    BUILDING_DESIGN: 'Building Design',
+    COMMERCIAL: 'Commercial',
+    OFFICE: 'Office',
+    RESIDENTIAL: 'Residential'
+  };
+
+  async function loadProjects() {
+    try {
+      const projects = await adminGet('/api/projects');
+      const tbody = document.getElementById('projectsTableBody');
+
+      if (projects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:2rem;">No projects yet. <a href="/admin/project-edit.html">Add the first one.</a></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = projects.map(p => `
+        <tr>
+          <td><strong>${p.title}</strong></td>
+          <td>${categoryNames[p.category] || p.category}</td>
+          <td>${p.year || '—'}</td>
+          <td>
+            <span class="badge ${p.isFeatured ? 'badge-green' : 'badge-gray'}">
+              ${p.isFeatured ? 'Featured' : 'Not featured'}
+            </span>
+          </td>
+          <td>
+            <div class="td-actions">
+              <a href="/admin/project-edit.html?id=${p.id}" class="btn btn-outline btn-sm">Edit</a>
+              <a href="/admin/project-images.html?id=${p.id}" class="btn btn-outline btn-sm">Images</a>
+              <button onclick="toggleFeatured(${p.id}, this)" class="btn btn-outline btn-sm">
+                ${p.isFeatured ? 'Unfeature' : 'Feature'}
+              </button>
+              <button onclick="deleteProject(${p.id}, '${p.title.replace(/'/g,"\\'")}', this)" class="btn btn-danger btn-sm">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      showError('Failed to load projects: ' + err.message);
+    }
+  }
+
+  async function toggleFeatured(projectId, btn) {
+    try {
+      btn.disabled = true;
+      await adminPut('/api/admin/projects/' + projectId + '/featured', {});
+      await loadProjects(); // Reload to reflect the change
+    } catch (err) {
+      showError('Failed to update: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+  async function deleteProject(projectId, title, btn) {
+    if (!confirm(`Delete "${title}" and ALL its images? This cannot be undone.`)) return;
+    try {
+      btn.disabled = true;
+      await adminDelete('/api/admin/projects/' + projectId);
+      showSuccess('Project deleted successfully.');
+      await loadProjects();
+    } catch (err) {
+      showError('Delete failed: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+  loadProjects();
+</script>
+</body>
+</html>

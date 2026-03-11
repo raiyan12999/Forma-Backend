@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+
+<div class="admin-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Dashboard</h1>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid" id="statGrid">
+      <div class="loading" style="grid-column:1/-1">Loading stats…</div>
+    </div>
+
+    <!-- QUICK LINKS -->
+    <div class="card">
+      <h3 style="font-weight:400; margin-bottom:1rem;">Quick Actions</h3>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <a href="/admin/project-edit.html" class="btn btn-primary">+ Add New Project</a>
+        <a href="/admin/team-edit.html" class="btn btn-outline">+ Add Team Member</a>
+        <a href="/admin/messages.html" class="btn btn-outline">View Messages</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  // Check auth before loading anything
+  requireAuth();
+
+  // Load dashboard stats
+  async function loadDashboard() {
+    try {
+      const data = await adminGet('/api/admin/dashboard');
+
+      document.getElementById('statGrid').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-num">${data.totalProjects}</div>
+          <div class="stat-label">Total Projects</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">${data.totalTeamMembers}</div>
+          <div class="stat-label">Team Members</div>
+        </div>
+        <div class="stat-card ${data.unreadMessages > 0 ? 'highlight' : ''}">
+          <div class="stat-num">${data.unreadMessages}</div>
+          <div class="stat-label">Unread Messages</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">${data.totalMessages}</div>
+          <div class="stat-label">Total Messages</div>
+        </div>
+      `;
+    } catch (err) {
+      document.getElementById('statGrid').innerHTML =
+        '<div class="alert alert-error" style="grid-column:1/-1">Failed to load dashboard: ' + err.message + '</div>';
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Messages — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+<style>
+  .msg-row-unread td { font-weight: 500; background: #fffbf0; }
+  .msg-preview { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg-full { display: none; white-space: pre-wrap; font-size: 0.85rem; color: #444; margin-top: 0.5rem; background: #f9f9f7; padding: 0.75rem; border-left: 3px solid #1a1a18; }
+</style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Contact Messages</h1>
+      <div id="unreadCount" style="font-size:0.85rem;color:#888;"></div>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>From</th>
+              <th>Email</th>
+              <th>Project Type</th>
+              <th>Message</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="messagesTableBody">
+            <tr><td colspan="7" class="loading">Loading messages…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  async function loadMessages() {
+    try {
+      const messages = await adminGet('/api/admin/contact');
+      const unreadCount = messages.filter(m => !m.isRead).length;
+      document.getElementById('unreadCount').textContent = unreadCount + ' unread message' + (unreadCount !== 1 ? 's' : '');
+
+      const tbody = document.getElementById('messagesTableBody');
+      if (messages.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:2rem;">No messages yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = messages.map(m => `
+        <tr class="${!m.isRead ? 'msg-row-unread' : ''}">
+          <td>${!m.isRead ? '<span class="unread-dot"></span>' : ''}</td>
+          <td>${m.name}${m.phone ? '<br><span style="font-size:0.75rem;color:#888;">' + m.phone + '</span>' : ''}</td>
+          <td><a href="mailto:${m.email}">${m.email}</a></td>
+          <td>${m.projectType || '—'}</td>
+          <td>
+            <div class="msg-preview" id="preview${m.id}">${m.message}</div>
+            <div class="msg-full" id="full${m.id}">${m.message}</div>
+            <button onclick="toggleMessage(${m.id})" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.75rem;text-decoration:underline;margin-top:0.25rem;">
+              Show full
+            </button>
+          </td>
+          <td style="font-size:0.8rem;color:#666;white-space:nowrap;">${formatDate(m.submittedAt)}</td>
+          <td>
+            ${!m.isRead
+              ? `<button onclick="markRead(${m.id}, this)" class="btn btn-outline btn-sm">Mark Read</button>`
+              : `<span style="font-size:0.75rem;color:#aaa;">Read</span>`}
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      showError('Failed to load messages: ' + err.message);
+    }
+  }
+
+  function toggleMessage(id) {
+    const preview = document.getElementById('preview' + id);
+    const full = document.getElementById('full' + id);
+    if (full.style.display === 'none' || !full.style.display) {
+      full.style.display = 'block';
+      preview.style.display = 'none';
+    } else {
+      full.style.display = 'none';
+      preview.style.display = 'block';
+    }
+  }
+
+  async function markRead(messageId, btn) {
+    try {
+      btn.disabled = true;
+      await adminPut('/api/admin/contact/' + messageId + '/read', {});
+      await loadMessages(); // Reload to update unread count and styling
+    } catch (err) {
+      showError('Failed to mark as read: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+  function formatDate(isoString) {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+           + '<br>' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  loadMessages();
+</script>
+</body>
+</html>

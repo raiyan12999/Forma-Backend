@@ -1,0 +1,191 @@
+/* ============================================================
+   FORMA Admin Panel — Shared Styles
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f5f5f3;
+  color: #1a1a18;
+  min-height: 100vh;
+}
+
+/* ---- Layout ---- */
+.admin-layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 220px;
+  background: #1a1a18;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+}
+
+.sidebar-logo {
+  font-size: 1.4rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  padding: 1.5rem 1.5rem 0.25rem;
+}
+.sidebar-sub {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-nav { flex: 1; padding: 1rem 0; }
+.sidebar-nav a {
+  display: block;
+  padding: 0.65rem 1.5rem;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.sidebar-nav a:hover, .sidebar-nav a.active { color: white; background: rgba(255,255,255,0.08); }
+.sidebar-nav a.active { border-left: 3px solid white; }
+
+.sidebar-footer {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+}
+.sidebar-footer button {
+  background: none; border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.6); padding: 0.4rem 1rem;
+  cursor: pointer; font-size: 0.75rem; margin-top: 0.5rem;
+}
+.sidebar-footer button:hover { border-color: white; color: white; }
+
+.main-content {
+  margin-left: 220px;
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+}
+
+/* ---- Page header ---- */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0dc;
+}
+.page-title { font-size: 1.5rem; font-weight: 400; }
+
+/* ---- Buttons ---- */
+.btn {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary { background: #1a1a18; color: white; }
+.btn-primary:hover { background: #333; }
+.btn-danger { background: #c0001f; color: white; }
+.btn-danger:hover { background: #9a0018; }
+.btn-outline { background: white; color: #1a1a18; border: 1px solid #ccc; }
+.btn-outline:hover { border-color: #1a1a18; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+
+/* ---- Cards ---- */
+.card {
+  background: white;
+  border: 1px solid #e0e0dc;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Tables ---- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: #f9f9f7; }
+th, td { padding: 0.85rem 1rem; text-align: left; font-size: 0.85rem; border-bottom: 1px solid #e8e8e4; }
+th { font-weight: 500; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: #666; }
+tr:hover td { background: #fafaf8; }
+.td-actions { display: flex; gap: 0.5rem; }
+
+/* ---- Forms ---- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #555; font-weight: 500; }
+input[type=text], input[type=number], input[type=email],
+select, textarea {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ddd;
+  font-size: 0.9rem;
+  width: 100%;
+  font-family: inherit;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: #1a1a18; }
+textarea { resize: vertical; min-height: 120px; }
+.form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+
+/* ---- Status messages ---- */
+.alert { padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; }
+.alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.alert-error { background: #fef2f2; color: #c0001f; border: 1px solid #fecaca; }
+.alert-hidden { display: none; }
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-red { background: #fef2f2; color: #c0001f; }
+.badge-gray { background: #f3f4f6; color: #6b7280; }
+
+/* ---- Stat cards (dashboard) ---- */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+.stat-card { background: white; border: 1px solid #e0e0dc; padding: 1.5rem; }
+.stat-num { font-size: 2.5rem; font-weight: 300; line-height: 1; margin-bottom: 0.5rem; }
+.stat-label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: #888; }
+.stat-card.highlight { background: #1a1a18; color: white; }
+.stat-card.highlight .stat-label { color: rgba(255,255,255,0.5); }
+
+/* ---- Image grid (project images) ---- */
+.img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.img-item { border: 1px solid #e0e0dc; background: white; overflow: hidden; }
+.img-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.img-item-footer { padding: 0.5rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+/* ---- Upload zone ---- */
+.upload-zone {
+  border: 2px dashed #ccc;
+  padding: 2.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  margin-bottom: 1.5rem;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: #1a1a18; }
+.upload-zone p { font-size: 0.85rem; color: #666; margin-top: 0.5rem; }
+
+/* ---- Loading ---- */
+.loading { text-align: center; padding: 3rem; color: #888; font-size: 0.9rem; }
+
+/* ---- Unread badge ---- */
+.unread-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; background: #c0001f; margin-right: 4px;
+}

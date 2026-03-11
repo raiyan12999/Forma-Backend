@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Edit Team Member — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+<style>
+  .current-photo { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .current-photo img { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; }
+  .photo-section { border-top: 1px solid #eee; padding-top: 1.5rem; margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title" id="pageTitle">Add Team Member</h1>
+      <a href="/admin/team.html" class="btn btn-outline">← Back to Team</a>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Full Name *</label>
+          <input type="text" id="name" placeholder="e.g. Khandaker Ashifuzzaman" />
+        </div>
+        <div class="form-group">
+          <label for="role">Role / Title *</label>
+          <input type="text" id="role" placeholder="e.g. Managing Director & Principal Architect" />
+        </div>
+        <div class="form-group">
+          <label for="isPartner">Type</label>
+          <select id="isPartner">
+            <option value="false">Team Member</option>
+            <option value="true">Partner (shown in bio section)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="displayOrder">Display Order</label>
+          <input type="number" id="displayOrder" placeholder="0" min="0" />
+        </div>
+        <div class="form-group full">
+          <label for="credentials">Credentials</label>
+          <input type="text" id="credentials" placeholder="e.g. M.Arch (UCL Bartlett) · B.Arch (BUET) · MIAB" />
+        </div>
+        <div class="form-group full">
+          <label for="bio">Biography</label>
+          <textarea id="bio" rows="6" placeholder="Full biography shown on the team page…"></textarea>
+        </div>
+      </div>
+
+      <div class="photo-section">
+        <h3 style="font-weight:400; margin-bottom:1rem;">Photo</h3>
+
+        <!-- Show current photo when editing -->
+        <div class="current-photo" id="currentPhotoWrap" style="display:none;">
+          <img id="currentPhoto" src="" alt="Current photo" />
+          <div>
+            <p style="font-size:0.85rem;margin-bottom:0.5rem;">Current photo</p>
+            <p style="font-size:0.75rem;color:#888;">Select a new file below to replace it</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="photo">Upload Photo (JPG, PNG, WEBP — max 20MB)</label>
+          <input type="file" id="photo" accept="image/jpeg,image/png,image/webp"
+            style="padding:0.5rem;border:1px solid #ddd;background:white;" />
+          <p style="font-size:0.75rem;color:#888;margin-top:0.3rem;">
+            Two sizes will be created automatically: large (for bio card) and medium (for team grid).
+          </p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button onclick="saveMember()" class="btn btn-primary" id="saveBtn">Save Team Member</button>
+        <a href="/admin/team.html" class="btn btn-outline">Cancel</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  const params = new URLSearchParams(window.location.search);
+  const editId = params.get('id');
+
+  if (editId) {
+    document.getElementById('pageTitle').textContent = 'Edit Team Member';
+    loadMember(editId);
+  }
+
+  async function loadMember(id) {
+    try {
+      // Fetch all members and find this one
+      const members = await adminGet('/api/team');
+      const member = members.find(m => m.id == id);
+      if (!member) { showError('Team member not found.'); return; }
+
+      document.getElementById('name').value         = member.name || '';
+      document.getElementById('role').value         = member.role || '';
+      document.getElementById('credentials').value  = member.credentials || '';
+      document.getElementById('bio').value          = member.bio || '';
+      document.getElementById('isPartner').value    = member.isPartner ? 'true' : 'false';
+      document.getElementById('displayOrder').value = member.displayOrder || 0;
+
+      if (member.photoMediumUrl) {
+        document.getElementById('currentPhotoWrap').style.display = 'flex';
+        document.getElementById('currentPhoto').src = member.photoMediumUrl;
+      }
+    } catch (err) {
+      showError('Failed to load member: ' + err.message);
+    }
+  }
+
+  async function saveMember() {
+    const name = document.getElementById('name').value.trim();
+    const role = document.getElementById('role').value.trim();
+
+    if (!name) { showError('Name is required.'); return; }
+    if (!role) { showError('Role is required.'); return; }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const photoFile = document.getElementById('photo').files[0];
+
+      if (editId) {
+        // Update text details first
+        await adminPut('/api/admin/team/' + editId, {
+          name, role,
+          credentials: document.getElementById('credentials').value.trim() || null,
+          bio: document.getElementById('bio').value.trim() || null,
+          isPartner: document.getElementById('isPartner').value === 'true',
+          displayOrder: parseInt(document.getElementById('displayOrder').value) || 0,
+        });
+
+        // If a new photo was selected, upload it separately
+        if (photoFile) {
+          btn.textContent = 'Uploading photo…';
+          const formData = new FormData();
+          formData.append('file', photoFile);
+          await adminUpload('/api/admin/team/' + editId + '/photo', formData);
+        }
+
+        showSuccess('Team member updated!');
+      } else {
+        // Creating new: use multipart to send both data and optional photo together
+        const formData = new FormData();
+        const memberData = {
+          name, role,
+          credentials: document.getElementById('credentials').value.trim() || null,
+          bio: document.getElementById('bio').value.trim() || null,
+          isPartner: document.getElementById('isPartner').value === 'true',
+          displayOrder: parseInt(document.getElementById('displayOrder').value) || 0,
+        };
+        formData.append('data', new Blob([JSON.stringify(memberData)], { type: 'application/json' }));
+        if (photoFile) formData.append('photo', photoFile);
+
+        await adminUpload('/api/admin/team', formData);
+        showSuccess('Team member added!');
+        setTimeout(() => window.location.href = '/admin/team.html', 1500);
+      }
+    } catch (err) {
+      showError('Save failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Team Member';
+    }
+  }
+</script>
+</body>
+</html>

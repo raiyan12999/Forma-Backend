@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Login — FORMA Studio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: #1a1a18;
+  }
+  .login-card {
+    background: white;
+    padding: 3rem;
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #e0e0dc;
+  }
+  .login-logo { font-size: 1.8rem; font-weight: 300; letter-spacing: 0.15em; margin-bottom: 0.5rem; }
+  .login-sub { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #888; margin-bottom: 2.5rem; }
+  label { display: block; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; color: #666; }
+  input {
+    width: 100%; padding: 0.75rem; border: 1px solid #ddd;
+    font-size: 0.95rem; margin-bottom: 1.5rem; outline: none;
+  }
+  input:focus { border-color: #1a1a18; }
+  button {
+    width: 100%; padding: 0.85rem; background: #1a1a18; color: white;
+    border: none; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  button:hover { background: #333; }
+  .error-msg { background: #fef2f2; color: #c00; padding: 0.75rem; margin-bottom: 1.5rem; font-size: 0.85rem; display: none; }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-logo">Forma</div>
+  <div class="login-sub">Admin Panel</div>
+
+  <div class="error-msg" id="errorMsg">Invalid username or password.</div>
+
+  <label for="username">Username</label>
+  <input type="text" id="username" placeholder="admin" />
+
+  <label for="password">Password</label>
+  <input type="password" id="password" placeholder="••••••••" />
+
+  <button onclick="login()">Sign In</button>
+</div>
+
+<script>
+  // If already logged in, go straight to dashboard
+  if (sessionStorage.getItem('adminAuth')) {
+    window.location.href = 'dashboard.html';
+  }
+
+  // Allow pressing Enter to submit
+  document.getElementById('password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') login();
+  });
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('errorMsg');
+    errorEl.style.display = 'none';
+
+    if (!username || !password) {
+      errorEl.textContent = 'Please enter your username and password.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      // Test the credentials by calling a protected endpoint with Basic Auth
+      // If it returns 200, the credentials are valid
+      const credentials = btoa(username + ':' + password);
+      const response = await fetch('/api/admin/dashboard', {
+        headers: { 'Authorization': 'Basic ' + credentials }
+      });
+
+      if (response.ok) {
+        // Store credentials in sessionStorage so other pages can use them
+        // sessionStorage clears when the browser tab is closed — no persistent login
+        sessionStorage.setItem('adminAuth', credentials);
+        sessionStorage.setItem('adminUsername', username);
+        window.location.href = 'dashboard.html';
+      } else {
+        errorEl.textContent = 'Invalid username or password.';
+        errorEl.style.display = 'block';
+      }
+    } catch (err) {
+      errorEl.textContent = 'Could not connect to server. Is the backend running?';
+      errorEl.style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>

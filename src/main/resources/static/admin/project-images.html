@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Images — FORMA Admin</title>
+<link rel="stylesheet" href="/admin/admin.css" />
+<style>
+  .hero-badge { background: #1a1a18; color: white; font-size: 0.65rem; padding: 0.2rem 0.5rem; letter-spacing: 0.08em; }
+  .img-item img { cursor: zoom-in; }
+  .project-name { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
+</style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Forma</div>
+    <div class="sidebar-sub">Admin Panel</div>
+    <div class="sidebar-nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/projects.html">Projects</a>
+      <a href="/admin/team.html">Team</a>
+      <a href="/admin/messages.html">Messages</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>Signed in as <strong id="sidebarUsername">Admin</strong></div>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">Project Images</h1>
+        <div class="project-name" id="projectName">Loading…</div>
+      </div>
+      <a href="/admin/projects.html" class="btn btn-outline">← Back to Projects</a>
+    </div>
+
+    <div id="statusMsg" class="alert alert-hidden"></div>
+
+    <!-- UPLOAD ZONE -->
+    <div class="card">
+      <h3 style="font-weight:400; margin-bottom:1rem;">Upload Images</h3>
+      <p style="font-size:0.82rem; color:#666; margin-bottom:1rem;">
+        Each uploaded image is automatically resized into 3 versions (large, medium, thumbnail).
+        The original file is never stored. JPG, PNG, WEBP only. Max 20MB per file.
+      </p>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <p>Click to select images or drag and drop here</p>
+        <p style="font-size:0.75rem; margin-top:0.25rem;">You can upload multiple files at once</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="handleFiles(this.files)" />
+
+      <div id="uploadProgress" style="display:none">
+        <p style="font-size:0.85rem; color:#666;" id="uploadProgressText">Uploading…</p>
+      </div>
+    </div>
+
+    <!-- IMAGES GRID -->
+    <div class="card">
+      <h3 style="font-weight:400; margin-bottom:1rem;">Uploaded Images</h3>
+      <p style="font-size:0.82rem; color:#666; margin-bottom:1.5rem;">
+        The hero image (cover) appears on the project grid card. Set display order by editing the number.
+      </p>
+      <div class="img-grid" id="imagesGrid">
+        <div class="loading">Loading images…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+  requireAuth();
+
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get('id');
+
+  if (!projectId) {
+    window.location.href = '/admin/projects.html';
+  }
+
+  // Load project name for display
+  async function loadProjectInfo() {
+    try {
+      const project = await adminGet('/api/projects/' + projectId);
+      document.getElementById('pageTitle').textContent = 'Images: ' + project.title;
+      document.getElementById('projectName').textContent = project.category + (project.year ? ' · ' + project.year : '');
+    } catch (err) {
+      document.getElementById('projectName').textContent = 'Project #' + projectId;
+    }
+  }
+
+  // Load and render existing images
+  async function loadImages() {
+    try {
+      const images = await adminGet('/api/projects/' + projectId + '/images');
+      renderImages(images);
+    } catch (err) {
+      document.getElementById('imagesGrid').innerHTML =
+        '<div class="alert alert-error">Failed to load images: ' + err.message + '</div>';
+    }
+  }
+
+  function renderImages(images) {
+    const grid = document.getElementById('imagesGrid');
+    if (images.length === 0) {
+      grid.innerHTML = '<p style="color:#888;font-size:0.85rem;">No images yet. Upload the first one above.</p>';
+      return;
+    }
+    grid.innerHTML = images.map(img => `
+      <div class="img-item" id="imgItem${img.id}">
+        <img src="${img.thumbnailUrl}" alt="Project image" loading="lazy" onclick="window.open('${img.largeUrl}','_blank')" title="Click to view large version" />
+        <div class="img-item-footer">
+          ${img.isHero ? '<span class="hero-badge">Hero</span>' : ''}
+          <span style="font-size:0.7rem;color:#888;">Order: <input type="number" value="${img.displayOrder}" min="0" style="width:45px;padding:0.1rem 0.3rem;border:1px solid #ddd;font-size:0.75rem;" onchange="reorderImage(${img.id}, this.value)" /></span>
+        </div>
+        <div class="img-item-footer">
+          ${!img.isHero ? `<button onclick="setHero(${img.id})" class="btn btn-outline btn-sm">Set Hero</button>` : ''}
+          <button onclick="deleteImage(${img.id})" class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Handle file selection and upload
+  async function handleFiles(files) {
+    if (!files || files.length === 0) return;
+
+    const progress = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('uploadProgressText');
+    progress.style.display = 'block';
+
+    let uploaded = 0;
+    let failed = 0;
+
+    for (const file of files) {
+      progressText.textContent = `Uploading ${file.name}… (${uploaded + 1} of ${files.length})`;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        await adminUpload('/api/admin/projects/' + projectId + '/images', formData);
+        uploaded++;
+      } catch (err) {
+        failed++;
+        console.error('Upload failed for ' + file.name + ':', err.message);
+      }
+    }
+
+    progress.style.display = 'none';
+    if (failed === 0) {
+      showSuccess(`Successfully uploaded ${uploaded} image${uploaded !== 1 ? 's' : ''}.`);
+    } else {
+      showError(`${uploaded} uploaded, ${failed} failed. Check the console for details.`);
+    }
+
+    // Reload images to show the new ones
+    await loadImages();
+  }
+
+  async function setHero(imageId) {
+    try {
+      await adminPut('/api/admin/images/' + imageId + '/set-hero', {});
+      showSuccess('Hero image updated.');
+      await loadImages();
+    } catch (err) {
+      showError('Failed to set hero: ' + err.message);
+    }
+  }
+
+  async function reorderImage(imageId, newOrder) {
+    try {
+      await adminPut('/api/admin/images/' + imageId + '/reorder', { order: parseInt(newOrder) });
+    } catch (err) {
+      showError('Failed to reorder: ' + err.message);
+    }
+  }
+
+  async function deleteImage(imageId) {
+    if (!confirm('Delete this image? All three sizes will be removed from disk.')) return;
+    try {
+      await adminDelete('/api/admin/images/' + imageId);
+      showSuccess('Image deleted.');
+      await loadImages();
+    } catch (err) {
+      showError('Delete failed: ' + err.message);
+    }
+  }
+
+  // Drag and drop support
+  const uploadZone = document.getElementById('uploadZone');
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  loadProjectInfo();
+  loadImages();
+</script>
+</body>
+</html>
