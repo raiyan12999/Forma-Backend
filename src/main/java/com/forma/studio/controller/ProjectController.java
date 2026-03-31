@@ -47,16 +47,6 @@ public class ProjectController {
     }
 
     /**
-     * GET /api/projects/{id}
-     * Returns a single project with all its images.
-     * Frontend: project-detail.html?id=123
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id) {
-        return ResponseEntity.ok(projectService.getProjectById(id));
-    }
-
-    /**
      * GET /api/projects/category/BUILDING_DESIGN
      * Returns projects filtered by category.
      * Frontend: projects-category.html?cat=architecture → fetches /api/projects/category/BUILDING_DESIGN
@@ -69,6 +59,18 @@ public class ProjectController {
             @PathVariable ProjectCategory category) {
         return ResponseEntity.ok(projectService.getProjectsByCategory(category));
     }
+
+    /**
+     * GET /api/projects/{id}
+     * Returns a single project with all its images.
+     * Frontend: project-detail.html?id=123
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id) {
+        return ResponseEntity.ok(projectService.getProjectById(id));
+    }
+
+
 
     /**
      * GET /api/projects/{id}/images
