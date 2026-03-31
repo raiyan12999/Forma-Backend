@@ -162,7 +162,16 @@
           btn.textContent = 'Uploading photo…';
           const formData = new FormData();
           formData.append('file', photoFile);
-          await adminUpload('/api/admin/team/' + editId + '/photo', formData);
+          // CORRECT — raw fetch with PUT, same multipart headers
+          const res = await fetch('/api/admin/team/' + editId + '/photo', {
+              method: 'PUT',
+              headers: authHeadersForUpload(),
+              body: formData
+          });
+          if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.message || 'Photo upload failed');
+          }
         }
 
         showSuccess('Team member updated!');
